@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,8 +11,8 @@ import (
 )
 
 func (cfg *apiConfig) handlerUploadThumbnail(
-    w http.ResponseWriter, 
-    r *http.Request,
+	w http.ResponseWriter,
+	r *http.Request,
 ) {
 	videoIDString := r.PathValue("videoID")
 	videoID, err := uuid.Parse(videoIDString)
@@ -29,11 +30,11 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 	if err != nil {
 		respondWithError(
-            w, 
-            http.StatusUnauthorized, 
-            "Couldn't validate JWT", 
-            err,
-        )
+			w,
+			http.StatusUnauthorized,
+			"Couldn't validate JWT",
+			err,
+		)
 		return
 	}
 
@@ -48,7 +49,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"Unable to parse form file",
 			err,
 		)
-        return
+		return
 	}
 
 	file, header, err := r.FormFile("thumbnail")
@@ -59,25 +60,25 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"Unable to parse form file",
 			err,
 		)
-        return
+		return
 	}
 	defer file.Close()
 
 	mediaType := header.Header.Get("Content-Type")
-    if mediaType == "" {
-        respondWithError(
-            w, 
-            http.StatusBadRequest, 
-            "Missing Content-Type for thumbnail", 
-            nil,
-        )
-        return
-    }
+	if mediaType == "" {
+		respondWithError(
+			w,
+			http.StatusBadRequest,
+			"Missing Content-Type for thumbnail",
+			nil,
+		)
+		return
+	}
 
 	fileContents, err := io.ReadAll(file)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Unable to read file", err)
-        return
+		return
 	}
 
 	video, err := cfg.db.GetVideo(videoID)
@@ -88,7 +89,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"Unable to find video",
 			err,
 		)
-        return
+		return
 	} else if video.UserID != userID {
 		respondWithError(
 			w,
@@ -96,31 +97,25 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"not authorized to modify video",
 			nil,
 		)
-        return
+		return
 	}
 
-	videoThumbnails[videoID] = thumbnail{
-        data: fileContents, 
-        mediaType: mediaType,
-    }
-
 	thumbnailURL := fmt.Sprintf(
-		"http://localhost:%s/api/thumbnails/%s",
-		cfg.port,
-		videoID.String(),
+		"data:%s;base64,%s",
+		mediaType,
+		base64.StdEncoding.EncodeToString(fileContents),
 	)
 	video.ThumbnailURL = &thumbnailURL
 
 	err = cfg.db.UpdateVideo(video)
 	if err != nil {
-        delete(videoThumbnails, videoID)
 		respondWithError(
 			w,
 			http.StatusInternalServerError,
 			"unable to update database",
 			err,
 		)
-        return
+		return
 	}
 
 	respondWithJSON(w, http.StatusOK, video)
