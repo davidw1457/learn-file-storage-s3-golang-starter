@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -67,7 +68,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 	defer file.Close()
 
 	mediaType := header.Header.Get("Content-Type")
-	if mediaType == "" || !strings.HasPrefix(mediaType, "image/") {
+	if mediaType == "" {
 		respondWithError(
 			w,
 			http.StatusBadRequest,
@@ -75,6 +76,25 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			nil,
 		)
 		return
+	}
+
+	mediaType, _, err = mime.ParseMediaType(mediaType)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusBadRequest,
+			"Invalid Content-Type for thumbnail",
+			err,
+		)
+	}
+
+	if mediaType != "image/jpeg" && mediaType != "image/png" {
+		respondWithError(
+			w,
+			http.StatusUnsupportedMediaType,
+			"Filetype must be png or jpg",
+			nil,
+		)
 	}
 
 	video, err := cfg.db.GetVideo(videoID)
