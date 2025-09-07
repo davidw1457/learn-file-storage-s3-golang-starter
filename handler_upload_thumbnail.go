@@ -86,6 +86,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"Invalid Content-Type for thumbnail",
 			err,
 		)
+		return
 	}
 
 	if mediaType != "image/jpeg" && mediaType != "image/png" {
@@ -95,6 +96,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"Filetype must be png or jpg",
 			nil,
 		)
+		return
 	}
 
 	video, err := cfg.db.GetVideo(videoID)
@@ -128,6 +130,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"unable to save file",
 			err,
 		)
+		return
 	}
 
 	_, err = io.Copy(thumbFile, file)
@@ -138,6 +141,7 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 			"unable to save file",
 			err,
 		)
+		return
 	}
 
 	url := fmt.Sprintf("http://localhost:%s/assets/%s", cfg.port, fileName)
