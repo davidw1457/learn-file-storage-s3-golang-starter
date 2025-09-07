@@ -1,13 +1,14 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/bootdotdev/learn-file-storage-s3-golang-starter/internal/auth"
 	"github.com/google/uuid"
@@ -118,8 +119,22 @@ func (cfg *apiConfig) handlerUploadThumbnail(
 		return
 	}
 
-	extension := strings.TrimPrefix(mediaType, "image/")
-	fileName := fmt.Sprintf("%s.%s", videoID, extension)
+	extension := getExtensionFromType(mediaType)
+
+	rando := make([]byte, 32)
+	_, err = rand.Read(rando)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			"Unable to generate filename",
+			err,
+		)
+		return
+	}
+	randoString := base64.RawURLEncoding.EncodeToString(rando)
+
+	fileName := fmt.Sprintf("%s.%s", randoString, extension)
 	path := filepath.Join(cfg.assetsRoot, fileName)
 
 	thumbFile, err := os.Create(path)
