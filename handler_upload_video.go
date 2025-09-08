@@ -189,10 +189,33 @@ func (cfg *apiConfig) handlerUploadVideo(
 		fileName = "other/" + fileName
 	}
 
+	optimizedFileName, err := processVideoForFastStart(tempFile.Name())
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			"unable to optimize file",
+			err,
+		)
+		return
+	}
+	defer os.Remove(optimizedFileName)
+
+	optimizedFile, err := os.Open(optimizedFileName)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			"unable to load optimized file",
+			err,
+		)
+		return
+	}
+
 	poi := s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
 		Key:         &fileName,
-		Body:        tempFile,
+		Body:        optimizedFile,
 		ContentType: &mediaType,
 	}
 
