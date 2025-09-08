@@ -146,7 +146,7 @@ func (cfg *apiConfig) handlerUploadVideo(
 		)
 		return
 	}
-	defer os.Remove(os.TempDir() + "\tubely-temp." + extension)
+	defer os.Remove(tempFile.Name())
 	defer tempFile.Close()
 
 	_, err = io.Copy(tempFile, file)
@@ -169,6 +169,24 @@ func (cfg *apiConfig) handlerUploadVideo(
 			err,
 		)
 		return
+	}
+
+	ratio, err := getVideoAspectRatio(tempFile.Name())
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusUnsupportedMediaType,
+			"unable to get aspect ratio",
+			err,
+		)
+	}
+
+	if ratio == "16:9" {
+		fileName = "landscape/" + fileName
+	} else if ratio == "9:16" {
+		fileName = "portrait/" + fileName
+	} else {
+		fileName = "other/" + fileName
 	}
 
 	poi := s3.PutObjectInput{
