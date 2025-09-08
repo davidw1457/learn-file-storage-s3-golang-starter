@@ -17,6 +17,8 @@ func getExtensionFromType(mediaType string) string {
 		return "png"
 	case "image/jpeg":
 		return "jpg"
+	case "video/mp4":
+		return "mp4"
 	default:
 		return ""
 	}
