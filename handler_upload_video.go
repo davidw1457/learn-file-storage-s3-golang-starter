@@ -232,8 +232,8 @@ func (cfg *apiConfig) handlerUploadVideo(
 	}
 
 	url := fmt.Sprintf(
-		"%s,%s",
-		cfg.s3Bucket,
+		"https://%s/%s",
+		cfg.s3CfDistribution,
 		fileName,
 	)
 	video.VideoURL = &url
@@ -244,17 +244,6 @@ func (cfg *apiConfig) handlerUploadVideo(
 			w,
 			http.StatusInternalServerError,
 			"unable to update database",
-			err,
-		)
-		return
-	}
-
-	video, err = cfg.dbVideoToSignedVideo(video)
-	if err != nil {
-		respondWithError(
-			w,
-			http.StatusInternalServerError,
-			"unable to generate link to video",
 			err,
 		)
 		return
