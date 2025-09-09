@@ -211,6 +211,7 @@ func (cfg *apiConfig) handlerUploadVideo(
 		)
 		return
 	}
+	defer optimizedFile.Close()
 
 	poi := s3.PutObjectInput{
 		Bucket:      &cfg.s3Bucket,
@@ -231,9 +232,8 @@ func (cfg *apiConfig) handlerUploadVideo(
 	}
 
 	url := fmt.Sprintf(
-		"http://%s.s3.%s.amazonaws.com/%s",
+		"%s,%s",
 		cfg.s3Bucket,
-		cfg.s3Region,
 		fileName,
 	)
 	video.VideoURL = &url
@@ -244,6 +244,17 @@ func (cfg *apiConfig) handlerUploadVideo(
 			w,
 			http.StatusInternalServerError,
 			"unable to update database",
+			err,
+		)
+		return
+	}
+
+	video, err = cfg.dbVideoToSignedVideo(video)
+	if err != nil {
+		respondWithError(
+			w,
+			http.StatusInternalServerError,
+			"unable to generate link to video",
 			err,
 		)
 		return
